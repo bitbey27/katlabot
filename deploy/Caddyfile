@@ -1,0 +1,27 @@
+# KatlaBot gateway — tek portta iki hizmet:
+#   normal istekler → Next.js panel (localhost:3000)
+#   ?XTransformPort=3003 → Bun motor (Socket.IO, localhost:3003)
+# Platform portunu $PORT ortam değişkeniyle alır (varsayılan 7860 — HF Spaces standardı).
+# ÖNEMLİ: baştaki ':' ŞART — ':{...}' port-dinleyici (HTTP) demektir; ':' olmadan
+# Caddy değeri HOSTNAME sanır, otomatik HTTPS/ACME'ye girer ve portu hiç açmaz
+# (Render'da 3-4 Kasım 2026'da yaşanan 'port 10000 hiç açılmıyor' hatasının sebebi).
+:{$PORT:7860} {
+        # isteğe bağlı panel kilidi: start.sh, PANEL_PASS tanımlıysa
+        # /app/auth.d/panel.caddy içine basic_auth bloğu yazar (glob boşsa no-op)
+        import /app/auth.d/*.caddy
+        @engine query XTransformPort=*
+        handle @engine {
+                reverse_proxy localhost:{query.XTransformPort} {
+                        header_up Host {host}
+                        header_up X-Forwarded-For {remote_host}
+                        header_up X-Forwarded-Proto {scheme}
+                }
+        }
+        handle {
+                reverse_proxy localhost:3000 {
+                        header_up Host {host}
+                        header_up X-Forwarded-For {remote_host}
+                        header_up X-Forwarded-Proto {scheme}
+                }
+        }
+}

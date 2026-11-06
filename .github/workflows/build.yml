@@ -1,0 +1,37 @@
+name: Build Docker image
+
+# KatlaBot imajını ghcr.io'ya build eder (ClawCloud Run buradan çeker).
+# Push ile otomatik; Actions sekmesinden elle de tetiklenebilir.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository_owner }}/katlabot
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Giriş (ghcr.io)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
